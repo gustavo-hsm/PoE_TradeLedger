@@ -76,11 +76,11 @@ class RequestHandler():
             # Request was successful. Now we can properly structure
             # the response and collect useful data
             for item in json.loads(api_response.text)['result']:
-                results.append({
+                trade_register = {
                     'offer_id': item['id'],
                     'trade_league': item['item']['league'],
-                    'buying_currency': item['listing']['price']['currency'],
-                    'buying_price': item['listing']['price']['amount'],
+                    'buying_currency': None,
+                    'buying_price': None,
                     'offer_currency': item['item']['typeLine'],
                     'offer_amount': 1,
                     'offer_total_stock': item['item']['stackSize'],
@@ -89,7 +89,19 @@ class RequestHandler():
                     ['account']['online'] is not None,
                     'indexed_time': item['listing']['indexed'],
                     'processed_time': response_time,
-                })
+                }
+
+                # Issue#1: Some offers had empty price data.
+                # Unsure why, possibly the trader left part os his
+                # request empty before listing.
+
+                if item['listing'] is not None:
+                    trade_register['buying_currency'] = item['listing']
+                    ['price']['currency']
+                    trade_register['buying_price'] = item['listing']
+                    ['price']['amount']
+
+                results.append(trade_register)
 
             # Wait 1 second before requesting the API again
             sleep(1)
