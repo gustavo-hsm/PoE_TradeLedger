@@ -30,10 +30,11 @@ def parse_exchange_response(league, response_text):
             trade_register['buying_price'] = item['listing'][
                 'price']['amount']
         results.append(trade_register)
+    # TODO: Improve file writing by assigning proper names and register count
     write_json(f'output/{league}/{response_time}.json', results)
 
 
 def write_json(file_dir, content):
-    with open(file_dir, 'w') as out:
+    with open(file_dir, 'a') as out:
         json.dump(content, out)
     sys.stdout.flush()

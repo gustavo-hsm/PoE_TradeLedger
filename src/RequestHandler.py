@@ -9,9 +9,21 @@ import ExchangeParser as ep
 
 
 class RequestHandler():
-    def __init__(self, ExchangeItem, league):
+    '''
+        Request Handler: Abstract class for HTTP Communication between
+        the client and the API. Requires an ExchangeItem to query over.
+
+        Usage:
+        * Create a PostHandler and a GetHandler providing the ExchangeItem
+        * Subscribe the GetHandler to your PostHandler, so it gets notified of
+          new requests to work upon
+        * *Optional*: Subscribe the ExchangeItem to your GetHandler, so it can
+          automatically update the minimum stock size
+        * Call the method 'send_request' to start processing
+    '''
+    def __init__(self, ExchangeItem):
         self.ExchangeItem = ExchangeItem
-        self.league = league
+        self.league = self.ExchangeItem.get_league()
         self.trade_url = "https://www.pathofexile.com/api/trade/"
         self.trade_url_exchange = self.trade_url + "exchange/" + self.league
         self.trade_url_search = self.trade_url + "search/" + self.league
@@ -23,10 +35,14 @@ class RequestHandler():
 
     def send_request(self):
         while self.retry:
-            self.require()
+            # TODO: Handle possible request exceptions such as Timeout
+            # and Connection lost
+            try:
+                self.require()
+            except requests.RequestException as e:
+                raise Exception(e)
 
     def handle_status_code(self, status_code):
-        print(status_code)
         if status_code >= 500:
             # Server side error:  Bad Gateway, Cloudfare DDoS Protection, etc
             # Wait a few minutes before trying again
@@ -77,8 +93,8 @@ class RequestHandler():
 
 
 class PostHandler(RequestHandler, Publisher):
-    def __init__(self, ExchangeItem, league):
-        super().__init__(ExchangeItem, league)
+    def __init__(self, ExchangeItem):
+        super().__init__(ExchangeItem)
         self.subscribers = set()
         self.subscribers_response = {
             'id': None,
@@ -110,8 +126,8 @@ class PostHandler(RequestHandler, Publisher):
 
 
 class GetHandler(RequestHandler, Subscriber, Publisher):
-    def __init__(self, ExchangeItem, league):
-        super().__init__(ExchangeItem, league)
+    def __init__(self, ExchangeItem):
+        super().__init__(ExchangeItem)
         self.batch_size = 10
         self.maximum_result_size = 200
         self.request_indexer = []
@@ -146,7 +162,6 @@ class GetHandler(RequestHandler, Subscriber, Publisher):
 
     def require(self):
         for index in self.request_indexer:
-            print('Parsing Request')
             items = ','.join(index)
             query = f"{self.trade_url_fetch}{items}?query={self.query_id}"
             response = requests.get(query)

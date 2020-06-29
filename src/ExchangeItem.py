@@ -3,9 +3,10 @@ from Observer import Subscriber
 
 class ExchangeItem(Subscriber):
 
-    def __init__(self, want, have, minimum_stock=0):
+    def __init__(self, want, have, league='harvest', minimum_stock=0):
 
         # Additional params
+        self.league = league
         self.minimum_stock = minimum_stock
         self.want = []
 
@@ -22,6 +23,9 @@ class ExchangeItem(Subscriber):
 
         # HTTP POST Params
         self.json_params = self._generate_exchange_params()
+
+    def get_league(self):
+        return self.league
 
     def get_json_params(self):
         return self.json_params
