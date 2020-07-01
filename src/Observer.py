@@ -1,7 +1,7 @@
 class Publisher():
     def __init__(self):
         self.subscribers = set()
-        self.subscribers_response = None
+        self.subscribers_response = {}
 
     def publish(self):
         for sub in self.subscribers:
@@ -12,6 +12,9 @@ class Publisher():
 
     def unsubscribe(self, subscriber):
         self.subscribers.remove(subscriber)
+
+    def set_subscribers_response(self, key, value):
+        self.subscribers_response[key] = value
 
 
 class Subscriber():
