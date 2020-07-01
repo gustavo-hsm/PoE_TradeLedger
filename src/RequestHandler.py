@@ -30,15 +30,15 @@ class RequestHandler():
         self.trade_url_fetch = self.trade_url + "fetch/"
         self.retry = True
 
-    def require(self, parameter_list):
+    def send_request(self):
         raise NotImplementedError
 
-    def send_request(self):
+    def fetch(self):
         while self.retry:
             # TODO: Handle possible request exceptions such as Timeout
             # and Connection lost
             try:
-                self.require()
+                self.send_request()
             except requests.RequestException as e:
                 raise Exception(e)
 
@@ -92,57 +92,36 @@ class RequestHandler():
         sys.stdout.flush()
 
 
-class PostHandler(RequestHandler, Publisher):
+class ExchangeSearchHandler(RequestHandler, Publisher):
     def __init__(self, ExchangeItem):
-        super().__init__(ExchangeItem)
-        self.subscribers = set()
-        self.subscribers_response = {
-            'id': None,
-            'complexity': None,
-            'result': None,
-        }
+        RequestHandler.__init__(self, ExchangeItem)
+        Subscriber.__init__(self)
+        Publisher.__init__(self)
 
-    def publish(self):
-        super().publish()
-
-    def subscribe(self, subscriber):
-        super().subscribe(subscriber)
-
-    def unsubscribe(self, subscriber):
-        super().unsubscribe(subscriber)
-
-    def require(self):
+    def send_request(self):
         json_data = self.ExchangeItem.get_json_params()
         response = requests.post(self.trade_url_exchange, json=json_data)
         status_code = response.status_code
-        super().handle_status_code(status_code)
+        self.handle_status_code(status_code)
 
         if status_code == 200:
             payload = json.loads(response.text)
-            self.subscribers_response['id'] = payload['id']
-            self.subscribers_response['complexity'] = payload['complexity']
-            self.subscribers_response['result'] = payload['result']
-            super().publish()
+            self.set_subscribers_response('id', payload['id'])
+            self.set_subscribers_response('complexity', payload['complexity'])
+            self.set_subscribers_response('result', payload['result'])
+            self.publish()
 
 
-class GetHandler(RequestHandler, Subscriber, Publisher):
+class FetchHandler(RequestHandler, Subscriber, Publisher):
     def __init__(self, ExchangeItem):
-        super().__init__(ExchangeItem)
+        RequestHandler.__init__(self, ExchangeItem)
+        Subscriber.__init__(self)
+        Publisher.__init__(self)
+
         self.batch_size = 10
         self.maximum_result_size = 200
         self.request_indexer = []
         self.query_id = None
-        self.subscribers = set()
-        self.subscribers_response = None
-
-    def publish(self):
-        super().publish()
-
-    def subscribe(self, subscriber):
-        super().subscribe(subscriber)
-
-    def unsubscribe(self, subscriber):
-        super().unsubscribe(subscriber)
 
     def update(self, *args):
         content = dict(args[0])
@@ -150,7 +129,7 @@ class GetHandler(RequestHandler, Subscriber, Publisher):
         results = content['result']
 
         if len(results) == self.maximum_result_size:
-            self.subscribers_response = {'raise_minimum_stock': True}
+            self.set_subscribers_response('raise_minimum_stock', True)
             self.publish()
 
         while len(results) > self.batch_size:
@@ -160,13 +139,13 @@ class GetHandler(RequestHandler, Subscriber, Publisher):
         if len(results) > 0:
             self.request_indexer.append(results)
 
-    def require(self):
+    def send_request(self):
         for index in self.request_indexer:
             items = ','.join(index)
             query = f"{self.trade_url_fetch}{items}?query={self.query_id}"
             response = requests.get(query)
             status_code = response.status_code
-            super().handle_status_code(status_code)
+            self.handle_status_code(status_code)
 
             if status_code == 200:
                 ep.parse_exchange_response(self.league, response.text)
