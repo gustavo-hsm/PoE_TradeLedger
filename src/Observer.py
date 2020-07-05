@@ -1,11 +1,10 @@
 class Publisher():
     def __init__(self):
         self.subscribers = set()
-        self.subscribers_response = {}
 
-    def publish(self):
+    def publish(self, *args):
         for sub in self.subscribers:
-            sub.update(self.subscribers_response)
+            sub.update(args)
 
     def subscribe(self, subscriber):
         self.subscribers.add(subscriber)
@@ -13,13 +12,10 @@ class Publisher():
     def unsubscribe(self, subscriber):
         self.subscribers.remove(subscriber)
 
-    def set_subscribers_response(self, key, value):
-        self.subscribers_response[key] = value
-
 
 class Subscriber():
     def __init__(self):
         update_state = None
 
-    def update(self, subscribers_response):
+    def update(self, *args):
         raise NotImplementedError
