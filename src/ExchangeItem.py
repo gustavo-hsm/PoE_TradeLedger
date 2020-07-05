@@ -3,12 +3,14 @@ from Observer import Subscriber
 
 class ExchangeItem(Subscriber):
 
-    def __init__(self, want, have, league='harvest', minimum_stock=0):
+    def __init__(self, want, have, league='harvest',
+                 minimum_stock=0, allow_adjust_minimum_stock=True):
 
         # Additional params
         self.league = league
         self.minimum_stock = minimum_stock
         self.want = []
+        self.allow_adjust_minimum_stock = allow_adjust_minimum_stock
 
         if type(want) == str:
             self.want.append(want)
@@ -31,10 +33,11 @@ class ExchangeItem(Subscriber):
         return self.json_params
 
     def raise_minimum_stock(self, factor=2):
-        self.minimum_stock = self.minimum_stock * factor or factor
-        self.json_params = self._generate_exchange_params()
+        if self.allow_adjust_minimum_stock:
+            self.minimum_stock = self.minimum_stock * factor or factor
+            self.json_params = self._generate_exchange_params()
 
-    def _generate_exchange_params(self):
+    def _generate_exchange_params(self, reverse=False):
         params = {
             'exchange': {
                 'status': {
@@ -49,10 +52,3 @@ class ExchangeItem(Subscriber):
             params['exchange']['minimum'] = self.minimum_stock
 
         return params
-
-    def update(self, *args):
-        has_stock_args = None
-        for arg in args:
-            has_stock_args = 'raise_minimum_stock' in arg
-            if has_stock_args:
-                self.raise_minimum_stock()
