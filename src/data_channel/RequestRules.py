@@ -1,9 +1,11 @@
 from time import time
-from Observer import Subscriber
+
+from objects.Observer import Subscriber
 
 
 class RuleManager(Subscriber):
     def __init__(self):
+        Subscriber.__init__(self)
         self.rules = set()
         # Initializing this manager with a custom rule
         self.add_rule(RequestRule(duration=30, maximum_requests=6))
@@ -31,7 +33,7 @@ class RuleManager(Subscriber):
         [rule.add_current_requests() for rule in self.rules]
 
     def update(self, *args):
-        publisher_response = self._flatten_args(args)
+        publisher_response = super().flatten_args(args)
         if publisher_response['response_object'] is not None:
             headers = dict(publisher_response['response_object'].
                            headers._store)
@@ -62,14 +64,6 @@ class RuleManager(Subscriber):
                 self.add_rule(RequestRule(duration=60, maximum_requests=3))
                 raise Exception(e)
 
-    # TODO: "Unnest" args coming from publishers. It should come in
-    # as a single tuple instead of a huge nested tuple
-    def _flatten_args(self, args):
-        if type(args) is tuple:
-            return self._flatten_args(args[0])
-        else:
-            return args
-
 
 class RequestRule():
     def __init__(self, duration, maximum_requests, current_state=0):
@@ -78,7 +72,7 @@ class RequestRule():
         self.maximum_requests = maximum_requests
 
     def allow_request(self):
-        # Requests can only be authorized while
+        # Requests can only be authorized if below maximum threshold
         return self.current_state < self.maximum_requests
 
     def add_current_requests(self):

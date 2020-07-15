@@ -1,7 +1,8 @@
 import requests
 import json
-from Observer import Publisher, Subscriber
-from EventType import EventType
+
+from objects.Observer import Publisher
+from static.EventType import EventType
 
 
 class RequestHandler(Publisher):

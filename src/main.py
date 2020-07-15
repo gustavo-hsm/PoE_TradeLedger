@@ -1,8 +1,8 @@
-from ExchangeItem import ExchangeItem
-from RequestNegotiator import RequestNegotiator
+from objects.ExchangeItem import ExchangeItem
+from data_channel.RequestNegotiator import RequestNegotiator
 
 # Request negotiator
-negotiator = RequestNegotiator(total_cycles=5)
+negotiator = RequestNegotiator(total_cycles=1)
 
 # Topics to track
 topics = []

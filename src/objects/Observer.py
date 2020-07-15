@@ -26,3 +26,11 @@ class Subscriber():
 
     def update(self, *args):
         raise NotImplementedError
+
+    # TODO: "Unnest" args coming from publishers. It should come in
+    # as a single tuple instead of a huge nested tuple
+    def flatten_args(self, args):
+        if type(args) is tuple:
+            return self.flatten_args(args[0])
+        else:
+            return args

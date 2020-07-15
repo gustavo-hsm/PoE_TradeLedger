@@ -2,11 +2,10 @@ import json
 import threading as th
 from time import sleep
 
-from Observer import Publisher, Subscriber
-from ExchangeItem import ExchangeItem
-from RequestHandler import PostHandler, FetchHandler
-from EventType import EventType
-from RequestRules import RuleManager
+from data_source.RequestHandler import PostHandler, FetchHandler
+from data_channel.RequestRules import RuleManager
+from objects.Observer import Subscriber
+from static.EventType import EventType
 
 
 class RequestNegotiator(Subscriber):
@@ -15,25 +14,25 @@ class RequestNegotiator(Subscriber):
         self.workers = set()
         self.topics = set()
         self.rule_manager = RuleManager()
-        self.cycle = 1
+        self.cycle = 0
         self.total_cycles = total_cycles
 
-    def add_topic(self, ExchangeItem):
-        self.topics.add(ExchangeItem)
+    def add_topic(self, exchange_item):
+        self.topics.add(exchange_item)
 
-    def remove_topic(self, ExchangeItem):
-        self.topics.remove(ExchangeItem)
+    def remove_topic(self, exchange_item):
+        self.topics.remove(exchange_item)
 
-    def add_worker(self, RequestHandler):
-        self.workers.add(RequestHandler)
+    def add_worker(self, request_handler):
+        self.workers.add(request_handler)
 
-    def remove_worker(self, RequestHandler):
-        self.workers.remove(RequestHandler)
+    def remove_worker(self, request_handler):
+        self.workers.remove(request_handler)
 
     def assert_stop_condition(self):
         # TODO
         sleep(1)
-        return self.cycle <= self.total_cycles or len(self.workers) > 0
+        return self.cycle < self.total_cycles or len(self.workers) > 0
 
     def start(self):
         while self.assert_stop_condition():
@@ -41,8 +40,8 @@ class RequestNegotiator(Subscriber):
 
             # Generate posters if worker set is empty
             if len(self.workers) == 0:
-                print('Cycle %s/%s' % (self.cycle, self.total_cycles))
                 self.cycle = self.cycle + 1
+                print('Cycle %s/%s' % (self.cycle, self.total_cycles))
                 # Attach each topic to a poster and subscribe this object
                 for topic in self.topics:
                     poster = PostHandler(topic, api='exchange')
@@ -55,9 +54,7 @@ class RequestNegotiator(Subscriber):
         self.rule_manager.increment_request_counter()
 
     def _start_workers(self):
-        workers = self.workers.copy()
-
-        for worker in workers:
+        for worker in self.workers:
             if worker.is_ready_to_start():
                 if self.rule_manager.authorize():
                     self.start_worker(worker)
@@ -66,7 +63,7 @@ class RequestNegotiator(Subscriber):
                     break
 
     def update(self, *args):
-        publisher_response = self._flatten_args(args)
+        publisher_response = super().flatten_args(args)
         print(publisher_response)
 
         handler = publisher_response['handler']
@@ -98,11 +95,3 @@ class RequestNegotiator(Subscriber):
                     if response_object.status_code == 200:
                         print(event_type, response_object)
             self.remove_worker(handler)
-
-    # TODO: "Unnest" args coming from publishers. It should come in
-    # as a single tuple instead of a huge nested tuple
-    def _flatten_args(self, args):
-        if type(args) is tuple:
-            return self._flatten_args(args[0])
-        else:
-            return args
