@@ -4,18 +4,19 @@ from time import sleep
 
 from Observer import Publisher, Subscriber
 from ExchangeItem import ExchangeItem
-from RequestHandler2 import PostHandler, FetchHandler
+from RequestHandler import PostHandler, FetchHandler
 from EventType import EventType
+from RequestRules import RuleManager
 
 
-class RequestNegotiator(Publisher, Subscriber):
-    def __init__(self):
-        Publisher.__init__(self)
+class RequestNegotiator(Subscriber):
+    def __init__(self, total_cycles=10):
         Subscriber.__init__(self)
         self.workers = set()
         self.topics = set()
-        self.x_rate_rules = set()
-        self.queue = []
+        self.rule_manager = RuleManager()
+        self.cycle = 1
+        self.total_cycles = total_cycles
 
     def add_topic(self, ExchangeItem):
         self.topics.add(ExchangeItem)
@@ -27,62 +28,42 @@ class RequestNegotiator(Publisher, Subscriber):
         self.workers.add(RequestHandler)
 
     def remove_worker(self, RequestHandler):
-        print('Removing worker %s' % RequestHandler)
         self.workers.remove(RequestHandler)
 
-    def allow_request(self):
-        # TODO
-        return True
-        # raise NotImplementedError
-
-        if len(x_rate_rules) == 0:
-            # No rules have been set yet. Allow request
-            return True
-
-        # Evaluate all rules
-        rules = set([x.assert_http_rules() for x in x_rate_rules])
-
-        # Deny request if any of these rules return False
-        if False in rules:
-            return False
-
-        return True
-
-    def assert_http_rules(self):
-        # TODO
-        pass
-
     def assert_stop_condition(self):
-        sleep(10)
-        return True
+        # TODO
+        sleep(1)
+        return self.cycle <= self.total_cycles or len(self.workers) > 0
 
     def start(self):
         while self.assert_stop_condition():
-            print('%s workers - %s queued' %
-                  (len(self.workers), len(self.queue)))
+            print('%s worker(s)' % len(self.workers))
 
-            # Check if there are unfinished requests
-            if len(self.workers) > 0:
-                print('Pending requests. Waiting 30 seconds...')
-                sleep(30)
-            else:
+            # Generate posters if worker set is empty
+            if len(self.workers) == 0:
+                print('Cycle %s/%s' % (self.cycle, self.total_cycles))
+                self.cycle = self.cycle + 1
                 # Attach each topic to a poster and subscribe this object
                 for topic in self.topics:
                     poster = PostHandler(topic, api='exchange')
-                    poster.subscribe(self)
+                    poster.subscribe((self, self.rule_manager))
                     self.add_worker(poster)
             self._start_workers()
 
     def start_worker(self, worker):
-        if worker.is_ready_to_start():
-            if self.allow_request():
-                th.Thread(target=worker.require).start()
-            else:
-                self.queue.add(worker)
+        th.Thread(target=worker.require).start()
+        self.rule_manager.increment_request_counter()
 
     def _start_workers(self):
-        for worker in self.workers:
-            self.start_worker(worker)
+        workers = self.workers.copy()
+
+        for worker in workers:
+            if worker.is_ready_to_start():
+                if self.rule_manager.authorize():
+                    self.start_worker(worker)
+                else:
+                    # Request was denied. Stop asking for authorization
+                    break
 
     def update(self, *args):
         publisher_response = self._flatten_args(args)
@@ -94,10 +75,7 @@ class RequestNegotiator(Publisher, Subscriber):
         response_object = publisher_response['response_object']
 
         if event_type == EventType.HANDLER_NEXT:
-            if self.allow_request():
-                th.Thread(target=handler.require()).start()
-            else:
-                self.queue.add(handler)
+            self.add_worker(handler)
 
         elif event_type == EventType.HANDLER_ERROR:
             print('Something went wrong... %s\n%s' %
@@ -106,17 +84,19 @@ class RequestNegotiator(Publisher, Subscriber):
 
         elif event_type == EventType.HANDLER_FINISHED:
             print('Worker is finished - %s' % handler)
-            # # Received response from a PostHandler
-            # if type(publisher_response['handler']) is PostHandler:
-            #     if response_object.status_code == 200:
-            #         # Use Response text to generate FetchHandlers as needed
-            #         getter = FetchHandler(exchange_item, response_object)
-            #         getter.subscribe(self)
-            #         self.getters.add(getter)
-
-            # # Received response from a FetchHandler
-            # elif type(publisher_response['handler']) is FetchHandler:
-            #     pass
+            # Received response from a PostHandler
+            if response_object is not None:
+                if isinstance(publisher_response['handler'], PostHandler):
+                    if response_object.status_code == 200:
+                        # Use Response text to generate FetchHandlers as needed
+                        getter = FetchHandler(exchange_item, response_object)
+                        getter.subscribe((self, self.rule_manager))
+                        self.add_worker(getter)
+                elif isinstance(publisher_response['handler'], FetchHandler):
+                    # TODO: Received response from a FetchHandler
+                    # Dispatch the response to ExchangeParser
+                    if response_object.status_code == 200:
+                        print(event_type, response_object)
             self.remove_worker(handler)
 
     # TODO: "Unnest" args coming from publishers. It should come in
