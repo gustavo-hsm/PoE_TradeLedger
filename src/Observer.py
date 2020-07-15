@@ -7,10 +7,17 @@ class Publisher():
             sub.update(args)
 
     def subscribe(self, subscriber):
-        self.subscribers.add(subscriber)
+        if '__getitem__' in dir(subscriber):
+            [self.subscribers.add(sub) for sub in subscriber if
+             isinstance(sub, Subscriber)]
+        else:
+            self.subscribers.add(subscriber)
 
     def unsubscribe(self, subscriber):
-        self.subscribers.remove(subscriber)
+        if '__getitem__' in dir(subscriber):
+            [self.subscribers.remove(sub) for sub in subscriber]
+        else:
+            self.subscribers.remove(subscriber)
 
 
 class Subscriber():
