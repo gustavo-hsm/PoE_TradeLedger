@@ -1,17 +1,16 @@
 from Observer import Subscriber
 
 
-class ExchangeItem(Subscriber):
-
+class ExchangeItem():
     def __init__(self, want, have, league='harvest',
                  minimum_stock=0, allow_adjust_minimum_stock=True):
 
         # Additional params
         self.league = league
         self.minimum_stock = minimum_stock
-        self.want = []
         self.allow_adjust_minimum_stock = allow_adjust_minimum_stock
 
+        self.want = []
         if type(want) == str:
             self.want.append(want)
         else:
