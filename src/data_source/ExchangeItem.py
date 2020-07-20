@@ -1,3 +1,7 @@
+# TODO
+# from data_source.TradeItem import TradeItem
+
+
 class ExchangeItem():
     def __init__(self, want, have, league='harvest',
                  minimum_stock=0, allow_adjust_minimum_stock=True):

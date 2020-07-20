@@ -3,12 +3,16 @@ import json
 
 from objects.Observer import Publisher
 from static.EventType import EventType
+from static.Params import HandlerParams
+# from data_source.TradeItem import TradeItem
 
 
 class RequestHandler(Publisher):
-    def __init__(self, ExchangeItem):
+    def __init__(self, exchange_item):
+        # TODO: Assert exchange_item
+        # assert isinstance(exchange_item, TradeItem)
         Publisher.__init__(self)
-        self.exchange_item = ExchangeItem
+        self.exchange_item = exchange_item
         self.response = None
         self.event_type = None
 
@@ -48,13 +52,12 @@ class RequestHandler(Publisher):
 
 
 class PostHandler(RequestHandler):
-    def __init__(self, ExchangeItem, api='exchange'):
-        super().__init__(ExchangeItem)
-        self.base_url = "https://www.pathofexile.com/api/trade/"
+    def __init__(self, exchange_item, api='exchange'):
+        super().__init__(exchange_item)
         self.trade_url = {
-            'search': self.base_url + 'search/' + self.exchange_item.
+            'search': HandlerParams.SEARCH_URL.value + self.exchange_item.
             get_league(),
-            'exchange': self.base_url + 'exchange/' + self.exchange_item.
+            'exchange': HandlerParams.EXCHANGE_URL.value + self.exchange_item.
             get_league()
         }.get(api, 'exchange')
         self.set_event_type(EventType.HANDLER_READY)
@@ -74,14 +77,16 @@ class PostHandler(RequestHandler):
 
 
 class FetchHandler(RequestHandler):
-    def __init__(self, ExchangeItem, response_object):
-        super().__init__(ExchangeItem)
+    def __init__(self, exchange_item, response_object):
+        super().__init__(exchange_item)
         self.indexed_queries = []
-        self.batch_size = 10
-        self.maximum_result_size = 200
-        self.base_url = "https://www.pathofexile.com/api/trade/fetch/"
-        self.exchange_item = ExchangeItem
+        self.exchange_item = exchange_item
         self.response_object = response_object
+
+        self.batch_size = HandlerParams.MAXIMUM_BATCH_SIZE.value
+        self.maximum_result_size = HandlerParams.MAXIMUM_FETCH_SIZE.value
+        self.fetch_url = HandlerParams.FETCH_URL.value
+
         self._parse_response_text()
         self.set_event_type(EventType.HANDLER_READY)
 
@@ -89,6 +94,7 @@ class FetchHandler(RequestHandler):
         self.set_event_type(EventType.HANDLER_STARTED)
         try:
             self.set_response(requests.get(self.indexed_queries.pop(0)))
+
             # Check if this was the last indexed query to require
             if len(self.indexed_queries) == 0:
                 self.set_event_type(EventType.HANDLER_FINISHED)
@@ -120,5 +126,5 @@ class FetchHandler(RequestHandler):
             items.append(result)
 
         for item in items:
-            query = self.base_url + ','.join(item) + '?query=' + query_id
+            query = self.fetch_url + ','.join(item) + '?query=' + query_id
             self.indexed_queries.append(query)

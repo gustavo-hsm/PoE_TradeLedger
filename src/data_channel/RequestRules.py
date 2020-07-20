@@ -7,8 +7,9 @@ class RuleManager(Subscriber):
     def __init__(self):
         Subscriber.__init__(self)
         self.rules = set()
+
         # Initializing this manager with a custom rule
-        self.add_rule(RequestRule(duration=30, maximum_requests=6))
+        self.add_rule(RequestRule(duration=12, maximum_requests=6))
 
     def add_rule(self, rule):
         self.rules.add(rule)
@@ -26,6 +27,7 @@ class RuleManager(Subscriber):
         # Evaluate all rules
         can_request = [rule.allow_request() for rule in self.rules]
         print('Rules: %s - Results: %s' % (len(self.rules), can_request))
+
         # Deny request if any of these rules return False
         return False not in can_request
 
