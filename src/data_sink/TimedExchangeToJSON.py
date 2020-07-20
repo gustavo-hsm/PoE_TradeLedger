@@ -27,5 +27,5 @@ class TimedExchangeToJSON(ExchangeToJSON):
                 self.sink()
             else:
                 self.stop_counter += 1
-                print('No data to sink. Stop counter %s/%s' % 
+                print('No data to sink. Stop counter %s/%s' %
                       (self.stop_counter, self.stop_maximum))
