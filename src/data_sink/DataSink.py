@@ -1,10 +1,10 @@
-import threading as th
+from threading import Lock
 
 
 class DataSink():
     def __init__(self):
         self.data = []
-        self.lock = th.Lock()
+        self.lock = Lock()
 
     def append_data(self, data):
         self.lock.acquire()

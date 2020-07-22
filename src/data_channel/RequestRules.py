@@ -9,7 +9,7 @@ class RuleManager(Subscriber):
         self.rules = set()
 
         # Initializing this manager with a custom rule
-        self.add_rule(RequestRule(duration=12, maximum_requests=6))
+        self.add_rule(RequestRule(duration=10, maximum_requests=1))
 
     def add_rule(self, rule):
         self.rules.add(rule)
@@ -63,7 +63,7 @@ class RuleManager(Subscriber):
             except (IndexError, KeyError, AssertionError) as e:
                 print('Error atempting to parse HTTP headers.'
                       + 'Creating a Custom Rule instead')
-                self.add_rule(RequestRule(duration=60, maximum_requests=3))
+                self.add_rule(RequestRule(duration=30, maximum_requests=1))
                 raise Exception(e)
 
 

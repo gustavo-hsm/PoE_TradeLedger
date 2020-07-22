@@ -1,10 +1,13 @@
-import json
 import threading as th
 from time import sleep
 
-from data_channel.RequestHandler import PostHandler, FetchHandler
+from data_channel.RequestHandler\
+     import RequestHandler, PostHandler, FetchHandler, StashHandler
 from data_channel.RequestRules import RuleManager
-from objects.Observer import Subscriber
+from data_sink.DataSink import DataSink
+from data_sink.StashParser import StashParser
+from data_sink.ExchangeParser import ExchangeParser
+from objects.Observer import Subscriber, Publisher
 from static.EventType import EventType
 from static.Params import NegotiatorParams
 
@@ -20,6 +23,9 @@ class RequestNegotiator(Subscriber):
         self.total_cycles = total_cycles
         self.lock = th.Lock()
 
+        if isinstance(self.data_sink, Publisher):
+            self.data_sink.subscribe(self)
+
     def add_topic(self, exchange_item):
         self.lock.acquire()
         try:
@@ -33,6 +39,15 @@ class RequestNegotiator(Subscriber):
             self.topics.remove(exchange_item)
         finally:
             self.lock.release()
+
+    def get_topics(self):
+        topics = set()
+        self.lock.acquire()
+        try:
+            topics = self.topics.copy()
+        finally:
+            self.lock.release()
+        return topics
 
     def add_worker(self, request_handler):
         self.lock.acquire()
@@ -68,11 +83,18 @@ class RequestNegotiator(Subscriber):
                 # TODO: Logging at INFO level
                 print('Cycle %s/%s' % (self.cycle, self.total_cycles))
 
-                # Attach each topic to a new worker and subscribe to it
-                for topic in self.topics:
-                    worker = PostHandler(topic, api='exchange')
+                # TODO: this step should be reworked to better acomodate
+                # future code capabilities
+                if isinstance(self.data_sink, StashParser) and self.cycle <= 1:
+                    worker = StashHandler()
                     worker.subscribe((self, self.rule_manager))
                     self.add_worker(worker)
+
+                elif isinstance(self.data_sink, ExchangeParser):
+                    for topic in self.topics:
+                        worker = PostHandler(topic, api='exchange')
+                        worker.subscribe((self, self.rule_manager))
+                        self.add_worker(worker)
             self._start_workers()
 
     def start_worker(self, worker):
@@ -93,41 +115,57 @@ class RequestNegotiator(Subscriber):
         publisher_response = super().flatten_args(args)
         # TODO: Logging at DEBUG level
         # print(publisher_response)
+        publisher = publisher_response['publisher']
 
-        handler = publisher_response['handler']
-        event_type = publisher_response['event_type']
-        exchange_item = publisher_response['exchange_item']
-        response_object = publisher_response['response_object']
+        if isinstance(publisher, DataSink):
+            # Received response from a DataSink
+            if isinstance(publisher, StashParser):
+                # Set up a new worker to continue iterating the Stash API
+                # TODO: Consider changing this approach to standardize
+                # construction of workers
+                self.cycle += 1
 
-        if event_type == EventType.HANDLER_NEXT:
-            if response_object is not None and\
-               isinstance(handler, FetchHandler):
-                th.Thread(target=self.data_sink.parse,
-                          args=[response_object]).start()
+                next_change_id = publisher_response['next_change_id']
+                worker = StashHandler(None, id=next_change_id)
+                worker.subscribe((self, self.rule_manager))
+                self.add_worker(worker)
 
-        elif event_type == EventType.HANDLER_ERROR:
-            # TODO: Logging at ERROR level
-            print('Something went wrong... %s\n%s' %
-                  (handler, response_object), flush=True)
-            self.remove_worker(handler)
+        elif isinstance(publisher, RequestHandler):
+            # Received response from a RequestHandler
+            event_type = publisher_response['event_type']
+            exchange_item = publisher_response['exchange_item']
+            response_object = publisher_response['response_object']
 
-        elif event_type == EventType.HANDLER_FINISHED:
-            # TODO: Logging at DEBUG level
-            print('Worker is finished - %s' % handler)
+            if event_type == EventType.HANDLER_NEXT:
+                if response_object is not None and\
+                   isinstance(publisher, FetchHandler):
+                    th.Thread(target=self.data_sink.parse,
+                              args=[response_object]).start()
 
-            if response_object is not None:
-                if isinstance(handler, PostHandler):
-                    # Received response from a PostHandler
-                    # Use Response text to generate FetchHandlers as needed
-                    if response_object.status_code == 200:
-                        worker = FetchHandler(exchange_item, response_object)
-                        worker.subscribe((self, self.rule_manager))
-                        self.add_worker(worker)
+            elif event_type == EventType.HANDLER_ERROR:
+                # TODO: Logging at ERROR level
+                print('Something went wrong... %s\n%s' %
+                      (publisher, response_object), flush=True)
+                self.remove_worker(publisher)
 
-                elif isinstance(handler, FetchHandler):
-                    # Received response from a FetchHandler
-                    # Dispatch the response object to DataSink
-                    if response_object.status_code == 200:
-                        th.Thread(target=self.data_sink.parse,
-                                  args=[response_object]).start()
-            self.remove_worker(handler)
+            elif event_type == EventType.HANDLER_FINISHED:
+                # TODO: Logging at DEBUG level
+                print('Worker is finished - %s' % publisher)
+
+                if response_object is not None:
+                    if isinstance(publisher, PostHandler):
+                        # Received response from a PostHandler
+                        # Use Response text to generate FetchHandlers as needed
+                        if response_object.status_code == 200:
+                            worker = FetchHandler(exchange_item,
+                                                  response_object)
+                            worker.subscribe((self, self.rule_manager))
+                            self.add_worker(worker)
+
+                    elif isinstance(publisher, (FetchHandler, StashHandler)):
+                        # Received response from a FetchHandler or StashHandler
+                        # Dispatch the response object to DataSink
+                        if response_object.status_code == 200:
+                            th.Thread(target=self.data_sink.parse,
+                                      args=[response_object]).start()
+                self.remove_worker(publisher)

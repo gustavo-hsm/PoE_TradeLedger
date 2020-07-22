@@ -1,6 +1,7 @@
 from data_source.ExchangeItem import ExchangeItem
 from data_channel.RequestNegotiator import RequestNegotiator
-from data_sink.TimedExchangeToJSON import TimedExchangeToJSON
+from data_sink.TimedExchangeParser import TimedExchangeParser
+from data_sink.StashParser import StashParser
 
 topics = []
 
@@ -14,10 +15,12 @@ chaos_to_ancient = ExchangeItem(want='ancient-orb', have='chaos',
                                 minimum_stock=16)
 
 # Data sink
-exchange_to_json = TimedExchangeToJSON(dir='output/harvest/')
+# exchange_to_json = TimedExchangeParser(dir='output/harvest/')
+stash_to_json = StashParser(dir='output/harvest/')
 
 # Data channel
-negotiator = RequestNegotiator(total_cycles=3, data_sink=exchange_to_json)
+# negotiator = RequestNegotiator(total_cycles=3, data_sink=exchange_to_json)
+negotiator = RequestNegotiator(total_cycles=3, data_sink=stash_to_json)
 
 # Attach sources to channel
 topics.extend([exalt_to_mirror, high_stock_exalt_to_mirror, chaos_to_exalt,

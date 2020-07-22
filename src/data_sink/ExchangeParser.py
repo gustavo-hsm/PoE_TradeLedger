@@ -1,24 +1,12 @@
 import json
-import os
-import errno
-from time import sleep
 from datetime import datetime
 
-from data_sink.DataSink import DataSink
+from data_sink.SinkToJSON import SinkToJSON
 
 
-class ExchangeToJSON(DataSink):
+class ExchangeParser(SinkToJSON):
     def __init__(self, dir):
-        DataSink.__init__(self)
-        self.dir = dir
-        if not os.path.isdir(dir):
-            print('Directory %s does not exist. Attempting to create..' % dir)
-            try:
-                os.mkdir(dir)
-            except OSError as e:
-                if e.errno != errno.EEXIST:
-                    raise Exception('Unable to create directory', e)
-                pass
+        SinkToJSON.__init__(self, dir)
 
     def append_data(self, data):
         super().append_data(data)
@@ -30,12 +18,18 @@ class ExchangeToJSON(DataSink):
         return super().copy_data()
 
     def parse(self, response_object):
-        if '__getitem__' in dir(response_object):
-            payload = json.loads(response_object[0].text)['result']
-        else:
-            payload = json.loads(response_object.text)['result']
-        response_time = datetime.now().strftime('%Y-%m-%dT%H:%M:%SZ')
+        try:
+            if '__getitem__' in dir(response_object):
+                payload = json.loads(response_object[0].text)['result']
+            else:
+                payload = json.loads(response_object.text)['result']
+        except KeyError:
+            print('Unable to find "result" within text response. ' +
+                  'Most likely an incompatible DataSink is being used ' +
+                  'to perform this operation', flush=True)
+            raise
 
+        response_time = datetime.now().strftime('%Y-%m-%dT%H:%M:%SZ')
         for item in payload:
             trade_register = {
                 'offer_id': item['id'],
@@ -60,11 +54,4 @@ class ExchangeToJSON(DataSink):
             self.append_data(trade_register)
 
     def sink(self):
-        try:
-            sink_data = self.copy_data()
-            filename = str(int(datetime.timestamp(datetime.now()))) + '.json'
-            with open(self.dir + filename, 'w') as out:
-                json.dump(sink_data, out)
-            [self.remove_data(x) for x in sink_data]
-        except Exception as e:
-            raise (e)
+        super().sink()

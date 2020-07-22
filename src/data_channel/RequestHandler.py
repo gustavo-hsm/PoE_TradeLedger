@@ -40,7 +40,7 @@ class RequestHandler(Publisher):
 
     def publish(self):
         args = {
-            'handler': self,
+            'publisher': self,
             'event_type': self.get_event_type(),
             'exchange_item': self.get_exchange_item(),
             'response_object': self.get_response()
@@ -69,7 +69,7 @@ class PostHandler(RequestHandler):
         try:
             self.set_response(requests.post(self.trade_url, json=json_data))
             self.set_event_type(EventType.HANDLER_FINISHED)
-        except requests.RequestException as e:
+        except (requests.RequestException, requests.HTTPError) as e:
             self.set_event_type(EventType.HANDLER_ERROR)
             raise Exception(e)
         finally:
@@ -100,7 +100,7 @@ class FetchHandler(RequestHandler):
                 self.set_event_type(EventType.HANDLER_FINISHED)
             else:
                 self.set_event_type(EventType.HANDLER_NEXT)
-        except requests.RequestException as e:
+        except (requests.RequestException, requests.HTTPError) as e:
             self.set_event_type(EventType.HANDLER_ERROR)
             raise Exception(e)
         except IndexError:
@@ -128,3 +128,25 @@ class FetchHandler(RequestHandler):
         for item in items:
             query = self.fetch_url + ','.join(item) + '?query=' + query_id
             self.indexed_queries.append(query)
+
+
+class StashHandler(RequestHandler):
+    def __init__(self, exchange_item=None, id='0'):
+        super().__init__(exchange_item)
+        self.id = id
+        self.base_url = HandlerParams.STASH_URL.value + '?id=' + str(id)
+        self.set_event_type(EventType.HANDLER_READY)
+
+    def require(self):
+        self.set_event_type(EventType.HANDLER_STARTED)
+        # TODO: Logging at DEBUG level
+        print('Querying stash ID: %s' % self.id)
+        
+        try:
+            self.set_response(requests.get(self.base_url))
+            self.set_event_type(EventType.HANDLER_FINISHED)
+        except (requests.RequestException, requests.HTTPError) as e:
+            self.set_event_type(EventType.HANDLER_ERROR)
+            raise Exception(e)
+        finally:
+            self.publish()

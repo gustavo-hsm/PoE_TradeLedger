@@ -1,12 +1,12 @@
 import threading as th
 from time import sleep
 
-from data_sink.ExchangeToJSON import ExchangeToJSON
+from data_sink.ExchangeParser import ExchangeParser
 
 
-class TimedExchangeToJSON(ExchangeToJSON):
+class TimedExchangeParser(ExchangeParser):
     def __init__(self, dir, time=30, stop_maximum=3):
-        ExchangeToJSON.__init__(self, dir)
+        ExchangeParser.__init__(self, dir)
         self.time = time
         self.stop_counter = 0
         self.stop_maximum = stop_maximum
