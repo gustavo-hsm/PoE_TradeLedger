@@ -16,7 +16,8 @@ chaos_to_ancient = ExchangeItem(want='ancient-orb', have='chaos',
 
 # Data sink
 # exchange_to_json = TimedExchangeParser(dir='output/harvest/')
-stash_to_json = StashParser(dir='output/harvest/')
+stash_to_json = StashParser(dir='output/harvest/', id='771388910-' +
+                            '784968649-749301602-847797292-808721043')
 
 # Data channel
 # negotiator = RequestNegotiator(total_cycles=3, data_sink=exchange_to_json)

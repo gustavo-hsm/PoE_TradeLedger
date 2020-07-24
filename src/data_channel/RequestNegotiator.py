@@ -13,7 +13,7 @@ from static.Params import NegotiatorParams
 
 
 class RequestNegotiator(Subscriber):
-    def __init__(self, data_sink, total_cycles=10):
+    def __init__(self, data_sink, total_cycles=1):
         Subscriber.__init__(self)
         self.data_sink = data_sink
         self.workers = set()
@@ -22,9 +22,15 @@ class RequestNegotiator(Subscriber):
         self.cycle = 0
         self.total_cycles = total_cycles
         self.lock = th.Lock()
+        self.id_changed = None
+        self.next_id = None
 
         if isinstance(self.data_sink, Publisher):
             self.data_sink.subscribe(self)
+
+        if isinstance(self.data_sink, StashParser):
+            self.id_changed = True
+            self.next_id = self.data_sink.get_id()
 
     def add_topic(self, exchange_item):
         self.lock.acquire()
@@ -70,7 +76,9 @@ class RequestNegotiator(Subscriber):
         # * Pending cycles to run through
         # OR
         # * Unfinished workers doing their tasks
-        return self.cycle < self.total_cycles or len(self.workers) > 0
+        return self.cycle < self.total_cycles or\
+            len(self.workers) > 0 or\
+            self.total_cycles == -1
 
     def start(self):
         while self.assert_stop_condition():
@@ -83,10 +91,9 @@ class RequestNegotiator(Subscriber):
                 # TODO: Logging at INFO level
                 print('Cycle %s/%s' % (self.cycle, self.total_cycles))
 
-                # TODO: this step should be reworked to better acomodate
-                # future code capabilities
-                if isinstance(self.data_sink, StashParser) and self.cycle <= 1:
-                    worker = StashHandler()
+                if isinstance(self.data_sink, StashParser) and self.id_changed:
+                    self.id_changed = False
+                    worker = StashHandler(id=self.next_id)
                     worker.subscribe((self, self.rule_manager))
                     self.add_worker(worker)
 
@@ -120,15 +127,11 @@ class RequestNegotiator(Subscriber):
         if isinstance(publisher, DataSink):
             # Received response from a DataSink
             if isinstance(publisher, StashParser):
-                # Set up a new worker to continue iterating the Stash API
-                # TODO: Consider changing this approach to standardize
-                # construction of workers
-                self.cycle += 1
-
+                # Update next change ID
                 next_change_id = publisher_response['next_change_id']
-                worker = StashHandler(None, id=next_change_id)
-                worker.subscribe((self, self.rule_manager))
-                self.add_worker(worker)
+                if self.next_id != next_change_id:
+                    self.next_id = next_change_id
+                    self.id_changed = True
 
         elif isinstance(publisher, RequestHandler):
             # Received response from a RequestHandler
