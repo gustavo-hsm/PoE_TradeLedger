@@ -53,7 +53,15 @@ class StashParser(SinkToJSON, Publisher):
             raise
 
         # TODO: Parse stash data!!
-        print('%s stashes found' % len(stashes))
+        # Simple Use case I thought about for now:
+        # Query which leagues were found on all stashes.
+        leagues = set([data['league'] for data in stashes])
+        data = {
+            'change_id': change_id,
+            'stash_count': len(stashes),
+            'leagues': list(leagues)
+        }
+        self.append_data(data)
 
     def sink(self):
         super().sink()
