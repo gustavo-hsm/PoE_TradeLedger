@@ -25,10 +25,10 @@ class RequestNegotiator(Subscriber):
         self.id_changed = None
         self.next_id = None
 
-        if isinstance(self.data_sink, Publisher):
+        if issubclass(self.data_sink, Publisher):
             self.data_sink.subscribe(self)
 
-        if isinstance(self.data_sink, StashParser):
+        if issubclass(self.data_sink, StashParser):
             self.id_changed = True
             self.next_id = self.data_sink.get_id()
 
@@ -77,8 +77,7 @@ class RequestNegotiator(Subscriber):
         # OR
         # * Unfinished workers doing their tasks
         return self.cycle < self.total_cycles or\
-            len(self.workers) > 0 or\
-            self.total_cycles == -1
+            len(self.workers) > 0
 
     def start(self):
         while self.assert_stop_condition():
@@ -91,7 +90,7 @@ class RequestNegotiator(Subscriber):
                 # TODO: Logging at INFO level
                 print('Cycle %s/%s' % (self.cycle, self.total_cycles))
 
-                if isinstance(self.data_sink, StashParser) and self.id_changed:
+                if issubclass(self.data_sink, StashParser) and self.id_changed:
                     self.id_changed = False
                     worker = StashHandler(id=self.next_id)
                     worker.subscribe((self, self.rule_manager))
@@ -103,6 +102,9 @@ class RequestNegotiator(Subscriber):
                         worker.subscribe((self, self.rule_manager))
                         self.add_worker(worker)
             self._start_workers()
+            continue
+        print('Job is done. Attempting to invoke final data sink')
+        self.data_sink.sink()
 
     def start_worker(self, worker):
         th.Thread(target=worker.require).start()
