@@ -47,7 +47,13 @@ class TaskManager(Subscriber):
             self.lock.release()
         return workers
 
+    def has_pending_workers(self):
+        return len(self.workers) > 0
+
     def start(self):
+        raise NotImplementedError
+
+    def end(self):
         raise NotImplementedError
 
     def update(self):
