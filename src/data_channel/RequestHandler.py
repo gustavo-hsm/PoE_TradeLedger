@@ -141,7 +141,7 @@ class StashHandler(RequestHandler):
         self.set_event_type(EventType.HANDLER_STARTED)
         # TODO: Logging at DEBUG level
         print('Querying stash ID: %s' % self.id)
-        
+
         try:
             self.set_response(requests.get(self.base_url))
             self.set_event_type(EventType.HANDLER_FINISHED)
