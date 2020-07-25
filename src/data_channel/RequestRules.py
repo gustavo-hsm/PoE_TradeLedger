@@ -4,12 +4,26 @@ from objects.Observer import Subscriber
 
 
 class RuleManager(Subscriber):
-    def __init__(self):
-        Subscriber.__init__(self)
-        self.rules = set()
+    __instance = None
 
-        # Initializing this manager with a custom rule
-        self.add_rule(RequestRule(duration=10, maximum_requests=1))
+    @staticmethod
+    def get_instance():
+        if RuleManager.__instance is None:
+            RuleManager()
+        return RuleManager.__instance
+
+    def __init__(self):
+        if RuleManager.__instance is None:
+            Subscriber.__init__(self)
+            self.rules = set()
+
+            # Initializing this manager with a custom rule
+            self.add_rule(RequestRule(duration=10, maximum_requests=1))
+            RuleManager.__instance = self
+        else:
+            # Attempted to create a new RuleManager
+            raise Exception('Do not create a new RuleManager.' +
+                            'Use the method "get_instance()" instead')
 
     def add_rule(self, rule):
         self.rules.add(rule)
@@ -26,6 +40,7 @@ class RuleManager(Subscriber):
 
         # Evaluate all rules
         can_request = [rule.allow_request() for rule in self.rules]
+        # TODO: Logging at DEBUG level
         print('Rules: %s - Results: %s' % (len(self.rules), can_request))
 
         # Deny request if any of these rules return False
@@ -61,6 +76,7 @@ class RuleManager(Subscriber):
                                   current_state=current_state))
 
             except (IndexError, KeyError, AssertionError) as e:
+                # TODO: Logging at ERROR level
                 print('Error atempting to parse HTTP headers.'
                       + 'Creating a Custom Rule instead')
                 self.add_rule(RequestRule(duration=30, maximum_requests=1))
