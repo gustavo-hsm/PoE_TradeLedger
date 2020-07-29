@@ -3,4 +3,4 @@
 logs/*
 output/*
 datasets/*
-venv/bin/python*
+venv/*
