@@ -13,8 +13,8 @@ class SinkToJSON(DataSink):
         self.dir = dir
         self.prefix = prefix
         if not os.path.isdir(dir):
-            logging.warning('Directory %s does not exist. ' +
-                            'Attempting to create.' % dir)
+            logging.warning('Directory %s does not exist.\
+                            Attempting to create.' % dir)
             try:
                 os.makedirs(dir)
             except OSError as e:
@@ -37,7 +37,8 @@ class SinkToJSON(DataSink):
     def sink(self):
         try:
             sink_data = self.copy_data()
-            filename = self.prefix + '_' + str(int(datetime.timestamp(datetime.now()))) + '.json'
+            filename = self.prefix + '_'\
+                + str(int(datetime.timestamp(datetime.now()))) + '.json'
             with open(self.dir + filename, 'w') as out:
                 json.dump(sink_data, out)
             [self.remove_data(x) for x in sink_data]
