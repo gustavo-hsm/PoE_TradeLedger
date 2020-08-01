@@ -1,3 +1,4 @@
+import logging
 import json
 import os
 import errno
@@ -11,9 +12,10 @@ class SinkToJSON(DataSink):
         DataSink.__init__(self)
         self.dir = dir
         if not os.path.isdir(dir):
-            print('Directory %s does not exist. Attempting to create..' % dir)
+            logging.warning('Directory %s does not exist. ' +
+                            'Attempting to create.' % dir)
             try:
-                os.mkdir(dir)
+                os.makedirs(dir)
             except OSError as e:
                 if e.errno != errno.EEXIST:
                     raise Exception('Unable to create directory', e)

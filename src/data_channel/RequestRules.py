@@ -1,3 +1,4 @@
+import logging
 from time import time
 
 from objects.Observer import Subscriber
@@ -40,8 +41,8 @@ class RuleManager(Subscriber):
 
         # Evaluate all rules
         can_request = [rule.allow_request() for rule in self.rules]
-        # TODO: Logging at DEBUG level
-        print('Rules: %s - Results: %s' % (len(self.rules), can_request))
+        logging.debug('Rules: %s - Results: %s' %
+                      (len(self.rules), can_request))
 
         # Deny request if any of these rules return False
         return False not in can_request
@@ -76,11 +77,10 @@ class RuleManager(Subscriber):
                                   current_state=current_state))
 
             except (IndexError, KeyError, AssertionError) as e:
-                # TODO: Logging at ERROR level
-                print('Error atempting to parse HTTP headers.'
-                      + 'Creating a Custom Rule instead')
-                self.add_rule(RequestRule(duration=30, maximum_requests=1))
-                raise Exception(e)
+                logging.warning('Error atempting to parse HTTP headers.'
+                                + 'Creating a Custom Rule instead')
+                self.add_rule(RequestRule(duration=10, maximum_requests=1))
+                pass
 
 
 class RequestRule():

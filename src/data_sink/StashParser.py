@@ -1,3 +1,4 @@
+import logging
 import json
 import threading as th
 from datetime import datetime
@@ -47,9 +48,9 @@ class StashParser(SinkToJSON, Publisher):
             stashes = payload['stashes']
             th.Thread(target=self.publish).start()
         except KeyError:
-            print('Unable to find "next_change_id" or "stashes" within ' +
-                  'text response. Most likely an incompatible DataSink is ' +
-                  'being used to perform this operation', flush=True)
+            logging.error('Unable to find "next_change_id" or "stashes"' +
+                          'within text response. Most likely an incompatible' +
+                          ' DataSink is being used to perform this operation')
             raise
 
         # TODO: Parse stash data!!

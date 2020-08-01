@@ -1,3 +1,4 @@
+import logging
 import threading as th
 
 from data_source.ExchangeItem import ExchangeItem
@@ -22,8 +23,7 @@ class ExchangeManager(TaskManager):
             assert isinstance(topic, ExchangeItem)
             super().add_topic(topic)
         except AssertionError:
-            # TODO: Logging at ERROR level
-            print('Attempted to add unsupported topic')
+            logging.error('Attempted to add unsupported topic')
             raise
 
     def remove_topic(self, topic):
@@ -34,8 +34,7 @@ class ExchangeManager(TaskManager):
             assert isinstance(worker, (PostHandler, FetchHandler))
             super().add_worker(worker)
         except AssertionError:
-            # TODO: Logging at ERROR level
-            print('Attempted to add unsupported worker')
+            logging.error('Attempted to add unsupported worker')
             raise
 
     def remove_worker(self, worker):
@@ -55,19 +54,15 @@ class ExchangeManager(TaskManager):
             self.add_worker(worker)
 
     def end(self):
-        # End was invoked. Kill any remaining workers and sink
-        # any remaining data
-        # TODO: Logging at DEBUG level
-        print('Ending TaskManager', self)
-        print('Remaining workers:', len(self.workers))
+        # End was invoked
+        # Kill remaining workers and sink remaining data
+        logging.debug('Ending TaskManager %s ' % self)
         [self.remove_worker(worker) for worker in self.get_workers()]
-        print('Sinking remaining data')
         self.data_sink.sink()
 
     def update(self, *args):
         publisher_response = super().flatten_args(args)
-        # TODO: Logging at DEBUG level
-        # print(publisher_response)
+        logging.debug(publisher_response)
 
         publisher = publisher_response['publisher']
         event_type = publisher_response['event_type']
@@ -81,14 +76,12 @@ class ExchangeManager(TaskManager):
                           args=[response_object]).start()
 
         elif event_type == EventType.HANDLER_ERROR:
-            # TODO: Logging at ERROR level
-            print('Something went wrong... %s\n%s' %
-                  (publisher, response_object), flush=True)
+            logging.error('Something went wrong... %s\n%s' %
+                          (publisher, response_object), flush=True)
             self.remove_worker(publisher)
 
         elif event_type == EventType.HANDLER_FINISHED:
-            # TODO: Logging at DEBUG level
-            print('Worker is finished - %s' % publisher)
+            logging.debug('Worker is finished - %s' % publisher)
 
             if response_object is not None:
                 if isinstance(publisher, PostHandler):

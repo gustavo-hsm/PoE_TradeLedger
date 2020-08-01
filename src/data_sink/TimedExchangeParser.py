@@ -1,3 +1,4 @@
+import logging
 import threading as th
 from time import sleep
 
@@ -26,10 +27,10 @@ class TimedExchangeParser(ExchangeParser):
             sleep(self.time)
             data_count = len(self.copy_data())
             if data_count > 0:
-                print('Writing %s items' % data_count, flush=True)
+                logging.info('Writing %s items' % data_count)
                 self.stop_counter = 0
                 self.sink()
             else:
                 self.stop_counter += 1
-                print('No data to sink. Stop counter %s/%s' %
-                      (self.stop_counter, self.stop_maximum))
+                logging.info('No data to sink. Stop counter %s/%s' %
+                             (self.stop_counter, self.stop_maximum))

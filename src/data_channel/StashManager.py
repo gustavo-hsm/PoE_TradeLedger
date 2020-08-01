@@ -1,3 +1,4 @@
+import logging
 import json
 import threading as th
 from time import sleep
@@ -34,8 +35,7 @@ class StashManager(TaskManager):
             assert isinstance(worker, StashHandler)
             super().add_worker(worker)
         except AssertionError:
-            # TODO: Logging at ERROR level
-            print('Attempted to add unsupported worker')
+            logging.error('Attempted to add unsupported worker')
             raise
 
     def remove_worker(self, worker):
@@ -52,8 +52,7 @@ class StashManager(TaskManager):
             self.id = id
             self.id_changed = True
         else:
-            # TODO: Logging at DEBUG level
-            print('next_change_id did not change:', id)
+            logging.info('next_change_id did not change: %s ' % id)
             self.id_changed = False
 
     def start(self):
@@ -62,19 +61,15 @@ class StashManager(TaskManager):
         self.add_worker(worker)
 
     def end(self):
-        # End was invoked. Kill any remaining workers and sink
-        # any remaining data
-        # TODO: Logging at DEBUG level
-        print('Ending TaskManager', self)
-        print('Remaining workers:', len(self.workers))
+        # End was invoked
+        # Kill remaining workers and sink remaining data
+        logging.debug('Ending TaskManager %s ' % self)
         [self.remove_worker(worker) for worker in self.get_workers()]
-        print('Sinking remaining data')
         self.data_sink.sink()
 
     def update(self, *args):
         publisher_response = super().flatten_args(args)
-        # TODO: Logging at DEBUG level
-        # print(publisher_response)
+        logging.debug(publisher_response)
         publisher = publisher_response['publisher']
 
         if isinstance(publisher, DataSink):
@@ -87,13 +82,11 @@ class StashManager(TaskManager):
             response_object = publisher_response['response_object']
 
             if event_type == EventType.HANDLER_ERROR:
-                # TODO: Logging at ERROR level
-                print('Something went wrong... %s\n%s' %
-                      (publisher, response_object), flush=True)
+                logging.error('Something went wrong... %s\n%s' %
+                              (publisher, response_object), flush=True)
 
             elif event_type == EventType.HANDLER_FINISHED:
-                # TODO: Logging at DEBUG level
-                print('Worker is finished - %s' % publisher)
+                logging.debug('Worker is finished - %s' % publisher)
 
                 # Dispatch the response object to Data Sink
                 if response_object.status_code == 200:

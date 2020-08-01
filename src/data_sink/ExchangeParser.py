@@ -1,3 +1,4 @@
+import logging
 import json
 from datetime import datetime
 
@@ -24,9 +25,9 @@ class ExchangeParser(SinkToJSON):
             else:
                 payload = json.loads(response_object.text)['result']
         except KeyError:
-            print('Unable to find "result" within text response. ' +
-                  'Most likely an incompatible DataSink is being used ' +
-                  'to perform this operation', flush=True)
+            logging.error('Unable to find "result" within text response. ' +
+                          'Most likely an incompatible DataSink is being ' +
+                          'used to perform this operation')
             raise
 
         response_time = datetime.now().strftime('%Y-%m-%dT%H:%M:%SZ')

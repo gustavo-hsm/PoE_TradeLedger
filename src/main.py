@@ -1,11 +1,15 @@
+import logging
+
 from data_source.ExchangeItem import ExchangeItem
 from data_channel.RequestNegotiator import RequestNegotiator
 from data_channel.ExchangeManager import ExchangeManager
 from data_channel.StashManager import StashManager
-from data_sink.TimedExchangeParser import ExchangeParser
+from data_sink.TimedExchangeParser import TimedExchangeParser
 from data_sink.StashParser import StashParser
 
 topics = []
+logging.basicConfig(filename='logs/main.log', filemode='a',
+                    level=logging.DEBUG)
 
 # Sample Data sources
 exalt_to_mirror = ExchangeItem(want='mirror', have='exalted')
@@ -17,7 +21,7 @@ chaos_to_ancient = ExchangeItem(want='ancient-orb', have='chaos',
                                 minimum_stock=16)
 
 # Data sink
-exchange_to_json = ExchangeParser(dir='output/harvest/')
+exchange_to_json = TimedExchangeParser(dir='output/harvest/')
 stash_to_json = StashParser(dir='output/harvest/public-stash/',
                             id='771388910-784968649-749301602-' +
                             '847797292-808721043')

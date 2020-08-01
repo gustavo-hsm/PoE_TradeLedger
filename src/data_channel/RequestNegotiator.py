@@ -1,3 +1,4 @@
+import logging
 import threading as th
 from time import sleep
 
@@ -51,8 +52,7 @@ class RequestNegotiator():
         try:
             assert len(self.managers) > 0
         except AssertionError:
-            # TODO: Logging at ERROR level
-            print('No TaskManagers attached')
+            logging.error(msg='No TaskManagers attached')
             raise
 
         while self.assert_stop_condition():
@@ -60,10 +60,10 @@ class RequestNegotiator():
             if not self.has_pending_tasks():
                 self.cycle += 1
                 self.start_managers()
-                print('Cycle %s/%s' %
-                      (self.cycle, self.total_cycles))
+                logging.info(msg='Cycle %s/%s' %
+                                 (self.cycle, self.total_cycles))
             self._launch_tasks()
-        print('Work is finished. Issuing end() command to managers...')
+        logging.debug('Work is finished. Issuing end() command to managers...')
         self.command_end_manager()
 
     def start_managers(self):
