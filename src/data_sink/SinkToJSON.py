@@ -23,7 +23,7 @@ class SinkToJSON(DataSink):
         super().append_data(data)
 
     def remove_data(self, data):
-        super().append_data(data)
+        super().remove_data(data)
 
     def copy_data(self):
         return super().copy_data()

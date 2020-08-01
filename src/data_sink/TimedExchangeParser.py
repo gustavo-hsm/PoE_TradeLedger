@@ -18,11 +18,15 @@ class TimedExchangeParser(ExchangeParser):
     def sink(self):
         super().sink()
 
+    def copy_data(self):
+        return super().copy_data()
+
     def _start_timed_sink(self):
         while self.stop_counter < self.stop_maximum:
             sleep(self.time)
-            if len(self.data) > 0:
-                print('Writing %s items' % len(self.data), flush=True)
+            data_count = len(self.copy_data())
+            if data_count > 0:
+                print('Writing %s items' % data_count, flush=True)
                 self.stop_counter = 0
                 self.sink()
             else:
