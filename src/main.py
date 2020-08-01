@@ -8,8 +8,7 @@ from data_sink.TimedExchangeParser import TimedExchangeParser
 from data_sink.StashParser import StashParser
 
 topics = []
-logging.basicConfig(filename='logs/main.log', filemode='a',
-                    level=logging.DEBUG)
+logging.basicConfig(filename='logs/main.log', filemode='a', level=logging.INFO)
 
 # Sample Data sources
 exalt_to_mirror = ExchangeItem(want='mirror', have='exalted')
@@ -21,10 +20,13 @@ chaos_to_ancient = ExchangeItem(want='ancient-orb', have='chaos',
                                 minimum_stock=16)
 
 # Data sink
-exchange_to_json = TimedExchangeParser(dir='output/harvest/')
+exchange_to_json = TimedExchangeParser(dir='output/harvest/',
+                                       prefix='CurrencyWatch')
+
 stash_to_json = StashParser(dir='output/harvest/public-stash/',
                             id='771388910-784968649-749301602-' +
-                            '847797292-808721043')
+                            '847797292-808721043',
+                            prefix='LeagueTracker')
 
 # Data channel
 exchange_manager = ExchangeManager(data_sink=exchange_to_json)

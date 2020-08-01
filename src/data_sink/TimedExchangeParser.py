@@ -6,8 +6,8 @@ from data_sink.ExchangeParser import ExchangeParser
 
 
 class TimedExchangeParser(ExchangeParser):
-    def __init__(self, dir, time=30, stop_maximum=3):
-        ExchangeParser.__init__(self, dir)
+    def __init__(self, dir, prefix=None, time=30, stop_maximum=3):
+        ExchangeParser.__init__(self, dir, prefix)
         self.time = time
         self.stop_counter = 0
         self.stop_maximum = stop_maximum

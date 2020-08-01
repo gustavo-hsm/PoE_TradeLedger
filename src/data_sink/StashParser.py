@@ -8,8 +8,8 @@ from objects.Observer import Publisher
 
 
 class StashParser(SinkToJSON, Publisher):
-    def __init__(self, dir, id=0):
-        SinkToJSON.__init__(self, dir)
+    def __init__(self, dir, id=0, prefix=None):
+        SinkToJSON.__init__(self, dir, prefix)
         Publisher.__init__(self)
         self.id = id
 

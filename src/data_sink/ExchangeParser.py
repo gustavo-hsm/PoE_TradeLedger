@@ -6,8 +6,8 @@ from data_sink.SinkToJSON import SinkToJSON
 
 
 class ExchangeParser(SinkToJSON):
-    def __init__(self, dir):
-        SinkToJSON.__init__(self, dir)
+    def __init__(self, dir, prefix=None):
+        SinkToJSON.__init__(self, dir, prefix)
 
     def append_data(self, data):
         super().append_data(data)
