@@ -77,7 +77,7 @@ class ExchangeManager(TaskManager):
 
         elif event_type == EventType.HANDLER_ERROR:
             logging.error('Something went wrong... %s\n%s' %
-                          (publisher, response_object), flush=True)
+                          (publisher, response_object))
             self.remove_worker(publisher)
 
         elif event_type == EventType.HANDLER_FINISHED:
