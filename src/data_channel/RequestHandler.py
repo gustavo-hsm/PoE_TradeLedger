@@ -15,6 +15,7 @@ class RequestHandler(Publisher):
         self.exchange_item = exchange_item
         self.response = None
         self.event_type = None
+        self.request_error = None
 
     def is_ready_to_start(self):
         return self.get_event_type() in (
@@ -29,6 +30,9 @@ class RequestHandler(Publisher):
     def get_event_type(self):
         return self.event_type
 
+    def get_request_error(self):
+        return self.request_error
+
     def set_response(self, exchange_item):
         self.exchange_item = exchange_item
 
@@ -38,12 +42,16 @@ class RequestHandler(Publisher):
     def set_event_type(self, event_type):
         self.event_type = event_type
 
+    def set_request_error(self, request_error):
+        self.request_error = request_error
+
     def publish(self):
         args = {
             'publisher': self,
             'event_type': self.get_event_type(),
             'exchange_item': self.get_exchange_item(),
-            'response_object': self.get_response()
+            'response_object': self.get_response(),
+            'request_error': self.get_request_error(),
         }
         super().publish(args)
 
@@ -71,7 +79,7 @@ class PostHandler(RequestHandler):
             self.set_event_type(EventType.HANDLER_FINISHED)
         except (requests.RequestException, requests.HTTPError) as e:
             self.set_event_type(EventType.HANDLER_ERROR)
-            raise Exception(e)
+            self.set_request_error(e)
         finally:
             self.publish()
 
@@ -102,7 +110,7 @@ class FetchHandler(RequestHandler):
                 self.set_event_type(EventType.HANDLER_NEXT)
         except (requests.RequestException, requests.HTTPError) as e:
             self.set_event_type(EventType.HANDLER_ERROR)
-            raise Exception(e)
+            self.set_request_error(e)
         except IndexError:
             self.set_event_type(EventType.HANDLER_FINISHED)
             pass
@@ -145,6 +153,6 @@ class StashHandler(RequestHandler):
             self.set_event_type(EventType.HANDLER_FINISHED)
         except (requests.RequestException, requests.HTTPError) as e:
             self.set_event_type(EventType.HANDLER_ERROR)
-            raise Exception(e)
+            self.set_request_error(e)
         finally:
             self.publish()

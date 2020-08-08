@@ -8,6 +8,7 @@ class TaskManager(Subscriber):
         Subscriber.__init__(self)
         self.workers = set()
         self.topics = set()
+        self.errors = []
         self.lock = th.Lock()
 
     def add_topic(self, topic):
@@ -47,8 +48,28 @@ class TaskManager(Subscriber):
             self.lock.release()
         return workers
 
+    def add_error(self, error):
+        self.lock.acquire()
+        try:
+            self.errors.append(error)
+        finally:
+            self.lock.release()
+
+    def get_error(self):
+        error = None
+        try:
+            error = self.errors.pop()
+        except IndexError:
+            return None
+        finally:
+            self.lock.release()
+        return error
+
     def has_pending_workers(self):
         return len(self.workers) > 0
+
+    def has_pending_errors(self):
+        return len(self.errors) > 0
 
     def start(self):
         raise NotImplementedError

@@ -35,6 +35,11 @@ class RequestNegotiator():
         return True in [manager.has_pending_workers() for
                         manager in self.managers]
 
+    # TODO: Continue from here
+    def has_pending_errors(self):
+        return True in [manager.has_pending_errors() for
+                        manager in self.managers]
+
     def command_end_manager(self):
         [manager.end() for manager in self.managers]
 

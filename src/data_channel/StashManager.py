@@ -47,6 +47,12 @@ class StashManager(TaskManager):
     def has_pending_workers(self):
         return super().has_pending_workers()
 
+    def add_error(self, error):
+        super().add_error(error)
+
+    def has_pending_errors(self):
+        return super().has_pending_errors()
+
     def update_next_id(self, id):
         if self.id != id:
             self.id = id
@@ -84,6 +90,7 @@ class StashManager(TaskManager):
             if event_type == EventType.HANDLER_ERROR:
                 logging.error('Something went wrong... %s\n%s' %
                               (publisher, response_object), flush=True)
+                self.add_error(publisher_response['request_error'])
 
             elif event_type == EventType.HANDLER_FINISHED:
                 logging.debug('Worker is finished - %s' % publisher)
@@ -92,4 +99,8 @@ class StashManager(TaskManager):
                 if response_object.status_code == 200:
                     th.Thread(target=self.data_sink.parse,
                               args=[response_object]).start()
+                else:
+                    logging.warning('Received unexpected status code: %s\
+                        \n%s' % (response_object.status_code,
+                                    response_object.text))
             self.remove_worker(publisher)

@@ -46,6 +46,12 @@ class ExchangeManager(TaskManager):
     def has_pending_workers(self):
         return super().has_pending_workers()
 
+    def add_error(self, error):
+        super().add_error(error)
+
+    def has_pending_errors(self):
+        return super().has_pending_errors()
+
     def start(self):
         # Attach each topic to a new worker and subscribe to it
         for topic in self.topics:
@@ -78,6 +84,7 @@ class ExchangeManager(TaskManager):
         elif event_type == EventType.HANDLER_ERROR:
             logging.error('Something went wrong... %s\n%s' %
                           (publisher, response_object), flush=True)
+            self.add_error(publisher_response['request_error'])
             self.remove_worker(publisher)
 
         elif event_type == EventType.HANDLER_FINISHED:
@@ -90,10 +97,18 @@ class ExchangeManager(TaskManager):
                         worker = FetchHandler(exchange_item, response_object)
                         worker.subscribe((self, self.rule_manager))
                         self.add_worker(worker)
+                    else:
+                        logging.warning('Received unexpected status code: %s\
+                            \n%s' % (response_object.status_code,
+                                     response_object.text))
 
                 elif isinstance(publisher, FetchHandler):
                     # Dispatch the response object to DataSink
                     if response_object.status_code == 200:
                         th.Thread(target=self.data_sink.parse,
                                   args=[response_object]).start()
+                    else:
+                        logging.warning('Received unexpected status code: %s\
+                            \n%s' % (response_object.status_code,
+                                     response_object.text))
             self.remove_worker(publisher)
