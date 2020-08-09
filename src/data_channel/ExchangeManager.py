@@ -83,12 +83,7 @@ class ExchangeManager(TaskManager):
 
         elif event_type == EventType.HANDLER_ERROR:
             logging.error('Something went wrong... %s\n%s' %
-<<<<<<< HEAD
-                          (publisher, response_object), flush=True)
-            self.add_error(publisher_response['request_error'])
-=======
                           (publisher, response_object))
->>>>>>> bugfixes
             self.remove_worker(publisher)
 
         elif event_type == EventType.HANDLER_FINISHED:
