@@ -89,8 +89,7 @@ class StashManager(TaskManager):
 
             if event_type == EventType.HANDLER_ERROR:
                 logging.error('Something went wrong... %s\n%s' %
-                              (publisher, response_object), flush=True)
-                self.add_error(publisher_response['request_error'])
+                              (publisher, response_object))
 
             elif event_type == EventType.HANDLER_FINISHED:
                 logging.debug('Worker is finished - %s' % publisher)
