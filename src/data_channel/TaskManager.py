@@ -56,6 +56,7 @@ class TaskManager(Subscriber):
             self.lock.release()
 
     def get_error(self):
+        self.lock.acquire()
         error = None
         try:
             error = self.errors.pop()

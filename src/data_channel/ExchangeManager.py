@@ -74,6 +74,7 @@ class ExchangeManager(TaskManager):
         event_type = publisher_response['event_type']
         exchange_item = publisher_response['exchange_item']
         response_object = publisher_response['response_object']
+        request_error = publisher_response['request_error']
 
         if event_type == EventType.HANDLER_NEXT:
             if response_object is not None and\
@@ -84,6 +85,7 @@ class ExchangeManager(TaskManager):
         elif event_type == EventType.HANDLER_ERROR:
             logging.error('Something went wrong... %s\n%s' %
                           (publisher, response_object))
+            self.add_error(request_error)
             self.remove_worker(publisher)
 
         elif event_type == EventType.HANDLER_FINISHED:
@@ -92,22 +94,12 @@ class ExchangeManager(TaskManager):
             if response_object is not None:
                 if isinstance(publisher, PostHandler):
                     # Use Response text to generate FetchHandlers
-                    if response_object.status_code == 200:
-                        worker = FetchHandler(exchange_item, response_object)
-                        worker.subscribe((self, self.rule_manager))
-                        self.add_worker(worker)
-                    else:
-                        logging.warning('Received unexpected status code: %s\
-                            \n%s' % (response_object.status_code,
-                                     response_object.text))
+                    worker = FetchHandler(exchange_item, response_object)
+                    worker.subscribe((self, self.rule_manager))
+                    self.add_worker(worker)
 
                 elif isinstance(publisher, FetchHandler):
                     # Dispatch the response object to DataSink
-                    if response_object.status_code == 200:
-                        th.Thread(target=self.data_sink.parse,
-                                  args=[response_object]).start()
-                    else:
-                        logging.warning('Received unexpected status code: %s\
-                            \n%s' % (response_object.status_code,
-                                     response_object.text))
+                    th.Thread(target=self.data_sink.parse,
+                              args=[response_object]).start()
             self.remove_worker(publisher)

@@ -4,6 +4,7 @@ import json
 from objects.Observer import Publisher
 from static.EventType import EventType
 from static.Params import HandlerParams
+from data_channel.ErrorHandler import StatusCodeException
 # from data_source.TradeItem import TradeItem
 
 
@@ -76,8 +77,11 @@ class PostHandler(RequestHandler):
 
         try:
             self.set_response(requests.post(self.trade_url, json=json_data))
+            if self.get_response().status_code != 200:
+                raise StatusCodeException(self.get_response())
             self.set_event_type(EventType.HANDLER_FINISHED)
-        except (requests.RequestException, requests.HTTPError) as e:
+        except (requests.RequestException, requests.HTTPError,
+                StatusCodeException) as e:
             self.set_event_type(EventType.HANDLER_ERROR)
             self.set_request_error(e)
         finally:
@@ -102,13 +106,15 @@ class FetchHandler(RequestHandler):
         self.set_event_type(EventType.HANDLER_STARTED)
         try:
             self.set_response(requests.get(self.indexed_queries.pop(0)))
-
+            if self.get_response().status_code != 200:
+                raise StatusCodeException(self.get_response())
             # Check if this was the last indexed query to require
             if len(self.indexed_queries) == 0:
                 self.set_event_type(EventType.HANDLER_FINISHED)
             else:
                 self.set_event_type(EventType.HANDLER_NEXT)
-        except (requests.RequestException, requests.HTTPError) as e:
+        except (requests.RequestException, requests.HTTPError,
+                StatusCodeException) as e:
             self.set_event_type(EventType.HANDLER_ERROR)
             self.set_request_error(e)
         except IndexError:
@@ -150,8 +156,11 @@ class StashHandler(RequestHandler):
 
         try:
             self.set_response(requests.get(self.base_url))
+            if self.get_response().status_code != 200:
+                raise StatusCodeException(self.get_response())
             self.set_event_type(EventType.HANDLER_FINISHED)
-        except (requests.RequestException, requests.HTTPError) as e:
+        except (requests.RequestException, requests.HTTPError,
+                StatusCodeException) as e:
             self.set_event_type(EventType.HANDLER_ERROR)
             self.set_request_error(e)
         finally:

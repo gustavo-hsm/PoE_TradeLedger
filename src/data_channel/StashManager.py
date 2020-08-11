@@ -86,20 +86,17 @@ class StashManager(TaskManager):
             event_type = publisher_response['event_type']
             exchange_item = publisher_response['exchange_item']
             response_object = publisher_response['response_object']
+            request_error = publisher_response['request_error']
 
             if event_type == EventType.HANDLER_ERROR:
                 logging.error('Something went wrong... %s\n%s' %
                               (publisher, response_object))
+                self.add_error(request_error)
 
             elif event_type == EventType.HANDLER_FINISHED:
                 logging.debug('Worker is finished - %s' % publisher)
 
                 # Dispatch the response object to Data Sink
-                if response_object.status_code == 200:
-                    th.Thread(target=self.data_sink.parse,
-                              args=[response_object]).start()
-                else:
-                    logging.warning('Received unexpected status code: %s\
-                        \n%s' % (response_object.status_code,
-                                    response_object.text))
+                th.Thread(target=self.data_sink.parse,
+                          args=[response_object]).start()
             self.remove_worker(publisher)
