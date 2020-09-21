@@ -12,3 +12,9 @@ class HandlerParams(Enum):
 
 class NegotiatorParams(Enum):
     SLEEP_TIMER = 1
+
+
+class AWSParams(Enum):
+    DYNAMO_ENDPOINT_URL = 'https://dynamodb.us-east-1.amazonaws.com'
+    # TODO: Create a function to compose the URL instead of using
+    # a static value
