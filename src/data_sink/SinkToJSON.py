@@ -41,6 +41,7 @@ class SinkToJSON(DataSink):
                 + str(int(datetime.timestamp(datetime.now()))) + '.json'
             with open(self.dir + filename, 'w') as out:
                 json.dump(sink_data, out)
-            [self.remove_data(x) for x in sink_data]
         except Exception as e:
             raise (e)
+        else:
+            [self.remove_data(x) for x in sink_data]
