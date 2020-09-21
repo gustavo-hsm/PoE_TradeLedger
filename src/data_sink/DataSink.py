@@ -1,33 +1,25 @@
 from threading import Lock
 
+from objects.Sync_decorator import sync
+
 
 class DataSink():
+    lock = Lock()
+
     def __init__(self):
         self.data = []
-        self.lock = Lock()
 
+    @sync(lock)
     def append_data(self, data):
-        self.lock.acquire()
-        try:
-            self.data.append(data)
-        finally:
-            self.lock.release()
+        self.data.append(data)
 
+    @sync(lock)
     def remove_data(self, data):
-        self.lock.acquire()
-        try:
-            self.data.remove(data)
-        finally:
-            self.lock.release()
+        self.data.remove(data)
 
+    @sync(lock)
     def copy_data(self):
-        data = []
-        self.lock.acquire()
-        try:
-            data = self.data.copy()
-        finally:
-            self.lock.release()
-        return data
+        return self.data.copy()
 
     def parse(self):
         raise NotImplementedError
