@@ -1,3 +1,6 @@
+import logging
+
+
 class Publisher():
     def __init__(self):
         self.subscribers = set()
@@ -14,10 +17,15 @@ class Publisher():
             self.subscribers.add(subscriber)
 
     def unsubscribe(self, subscriber):
-        if '__getitem__' in dir(subscriber):
-            [self.subscribers.remove(sub) for sub in subscriber]
-        else:
-            self.subscribers.remove(subscriber)
+        try:
+            if '__getitem__' in dir(subscriber):
+                [self.subscribers.remove(sub) for sub in subscriber]
+            else:
+                self.subscribers.remove(subscriber)
+        except ValueError:
+            logging.warning('Cannot unsubscribe %s because ' +
+                            'it is not a subscriber' % subscriber)
+            pass
 
 
 class Subscriber():
