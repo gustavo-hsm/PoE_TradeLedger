@@ -1,32 +1,26 @@
-import logging
 import json
+import logging
 from datetime import datetime
 
-from data_sink.SinkToJSON import SinkToJSON
+from data_parser.DataParser import DataParser
 
 
-class ExchangeParser(SinkToJSON):
-    def __init__(self, dir, prefix=None):
-        SinkToJSON.__init__(self, dir, prefix)
+class ExchangeParser(DataParser):
+    def __init__(self, target=None):
+        super().__init__(target=target)
 
-    def append_data(self, data):
-        super().append_data(data)
+    def dispatch(self):
+        super().dispatch()
 
-    def remove_data(self, data):
-        super().remove_data(data)
-
-    def copy_data(self):
-        return super().copy_data()
-
-    def parse(self, response_object):
+    def parse(self, data):
         try:
-            if '__getitem__' in dir(response_object):
-                payload = json.loads(response_object[0].text)['result']
+            if '__getitem__' in dir(data):
+                payload = json.loads(data[0].text)['result']
             else:
-                payload = json.loads(response_object.text)['result']
+                payload = json.loads(data.text)['result']
         except KeyError:
             logging.error('Unable to find "result" within text response. ' +
-                          'Most likely an incompatible DataSink is being ' +
+                          'Most likely an incompatible DataParse is being ' +
                           'used to perform this operation')
             raise
 
@@ -52,7 +46,5 @@ class ExchangeParser(SinkToJSON):
                     'price']['currency']
                 trade_register['buying_price'] = item['listing'][
                     'price']['amount']
-            self.append_data(trade_register)
-
-    def sink(self):
-        super().sink()
+            super().append_data(trade_register)
+        self.dispatch()
