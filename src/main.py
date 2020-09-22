@@ -22,6 +22,10 @@ chaos_to_ancient = ExchangeItem(want='ancient-orb', have='chaos',
 ancient_to_chaos = ExchangeItem(want='chaos', have='ancient-orb',
                                 league='heist')
 
+# Data channel
+exchange_manager = ExchangeManager()
+stash_manager = StashManager()
+
 # Data Parser
 exchange_parser = ExchangeParser()
 stash_parser = StashParser()
@@ -30,10 +34,6 @@ stash_parser = StashParser()
 console_display = SinkToConsole()
 local_file = SinkToLocal('output/heist/', prefix='SampleExchangeData')
 timed_sink_to_local_file = TimedSink(local_file, time=6, stop_maximum=10)
-
-# Data channel
-exchange_manager = ExchangeManager()
-stash_manager = StashManager()
 
 # Attach sources to channel
 exchange_manager.add_topic(chaos_to_exalt)
