@@ -5,18 +5,34 @@ from data_source.ExchangeItem import ExchangeItem
 from data_channel.RequestHandler import PostHandler, FetchHandler
 from data_channel.RequestRules import RuleManager
 from data_channel.TaskManager import TaskManager
+from data_parser.ExchangeParser import ExchangeParser
 from static.EventType import EventType
 from objects.Observer import Publisher
 
 
 class ExchangeManager(TaskManager):
-    def __init__(self, data_sink):
+    def __init__(self):
         TaskManager.__init__(self)
-        self.data_sink = data_sink
         self.rule_manager = RuleManager.get_instance()
 
-        if isinstance(self.data_sink, Publisher):
-            self.data_sink.subscribe(self)
+    def add_data_parser(self, data_parser):
+        try:
+            assert isinstance(data_parser, ExchangeParser)
+            if isinstance(data_parser, Publisher):
+                data_parser.subscribe(self)
+            super().add_data_parser(data_parser)
+        except AssertionError:
+            logging.error('Attempted to add unsupported parser')
+            raise
+
+    def remove_data_parser(self, data_parser):
+        if isinstance(data_parser, Publisher):
+            data_parser.unsubscribe(self)
+        try:
+            super().remove_data_parser(data_parser)
+        except ValueError:
+            logging.warning('Parser %s is not on the list' % data_parser)
+            pass
 
     def add_topic(self, topic):
         try:
@@ -52,6 +68,9 @@ class ExchangeManager(TaskManager):
     def has_pending_errors(self):
         return super().has_pending_errors()
 
+    def command_targets(self, data, action='parse'):
+        super().command_targets(data, action=action)
+
     def start(self):
         # Attach each topic to a new worker and subscribe to it
         for topic in self.topics:
@@ -64,7 +83,7 @@ class ExchangeManager(TaskManager):
         # Kill remaining workers and sink remaining data
         logging.debug('Ending TaskManager %s ' % self)
         [self.remove_worker(worker) for worker in self.get_workers()]
-        self.data_sink.sink()
+        self.command_targets(None, action='dispatch')
 
     def update(self, *args):
         publisher_response = super().flatten_args(args)
@@ -79,8 +98,8 @@ class ExchangeManager(TaskManager):
         if event_type == EventType.HANDLER_NEXT:
             if response_object is not None and\
                isinstance(publisher, FetchHandler):
-                th.Thread(target=self.data_sink.parse,
-                          args=[response_object]).start()
+                th.Thread(target=self.command_targets,
+                          args=[response_object, 'parse']).start()
 
         elif event_type == EventType.HANDLER_ERROR:
             logging.error('Something went wrong... %s\n%s' %
@@ -99,7 +118,7 @@ class ExchangeManager(TaskManager):
                     self.add_worker(worker)
 
                 elif isinstance(publisher, FetchHandler):
-                    # Dispatch the response object to DataSink
-                    th.Thread(target=self.data_sink.parse,
-                              args=[response_object]).start()
+                    # Dispatch the response object to Parse targets
+                    th.Thread(target=self.command_targets,
+                              args=[response_object, 'parse']).start()
             self.remove_worker(publisher)

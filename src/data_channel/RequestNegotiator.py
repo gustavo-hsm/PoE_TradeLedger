@@ -7,9 +7,9 @@ from data_channel.RequestHandler\
 from data_channel.TaskManager import TaskManager
 from data_channel.RequestRules import RuleManager
 from data_channel.ErrorHandler import ErrorHandler
+from data_parser.StashParser import StashParser
+from data_parser.ExchangeParser import ExchangeParser
 from data_sink.DataSink import DataSink
-from data_sink.StashParser import StashParser
-from data_sink.ExchangeParser import ExchangeParser
 from objects.Observer import Subscriber, Publisher
 from static.EventType import EventType
 from static.Params import NegotiatorParams

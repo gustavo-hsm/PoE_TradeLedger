@@ -6,23 +6,37 @@ from time import sleep
 from data_channel.RequestHandler import StashHandler
 from data_channel.RequestRules import RuleManager
 from data_channel.TaskManager import TaskManager
-from data_sink.DataSink import DataSink
-from data_sink.StashParser import StashParser
+from data_parser.StashParser import StashParser
 from static.EventType import EventType
 from objects.Observer import Publisher
 
 
 class StashManager(TaskManager):
-    def __init__(self, data_sink, init_id='0'):
+    def __init__(self, init_id='0'):
         TaskManager.__init__(self)
-        self.data_sink = data_sink
         self.id = init_id
         self.id_changed = True
         self.next_id = None
         self.rule_manager = RuleManager.get_instance()
 
-        if isinstance(self.data_sink, Publisher):
-            self.data_sink.subscribe(self)
+    def add_data_parser(self, data_parser):
+        try:
+            assert isinstance(data_parser, StashParser)
+            if isinstance(data_parser, Publisher):
+                data_parser.subscribe(self)
+            super().add_data_parser(data_parser)
+        except AssertionError:
+            logging.error('Attempted to add unsupported parser')
+            raise
+
+    def remove_data_parser(self, data_parser):
+        if isinstance(data_parser, Publisher):
+            data_parser.unsubscribe(self)
+        try:
+            super().remove_data_parser(data_parser)
+        except ValueError:
+            logging.warning('Parser %s is not on the list' % data_parser)
+            pass
 
     def add_topic(self, topic):
         raise NotImplementedError
@@ -61,6 +75,9 @@ class StashManager(TaskManager):
             logging.info('next_change_id did not change: %s ' % id)
             self.id_changed = False
 
+    def command_targets(self, data, action='parse'):
+        super().command_targets(data, action=action)
+
     def start(self):
         worker = StashHandler(None, id=self.id)
         worker.subscribe((self, self.rule_manager))
@@ -71,16 +88,15 @@ class StashManager(TaskManager):
         # Kill remaining workers and sink remaining data
         logging.debug('Ending TaskManager %s ' % self)
         [self.remove_worker(worker) for worker in self.get_workers()]
-        self.data_sink.sink()
+        self.command_targets(None, action='dispatch')
 
     def update(self, *args):
         publisher_response = super().flatten_args(args)
         logging.debug(publisher_response)
         publisher = publisher_response['publisher']
 
-        if isinstance(publisher, DataSink):
-            if isinstance(publisher, StashParser):
-                self.update_next_id(publisher_response['next_change_id'])
+        if isinstance(publisher, StashParser):
+            self.update_next_id(publisher_response['next_change_id'])
 
         elif isinstance(publisher, StashHandler):
             event_type = publisher_response['event_type']
@@ -96,7 +112,7 @@ class StashManager(TaskManager):
             elif event_type == EventType.HANDLER_FINISHED:
                 logging.debug('Worker is finished - %s' % publisher)
 
-                # Dispatch the response object to Data Sink
-                th.Thread(target=self.data_sink.parse,
-                          args=[response_object]).start()
+                # Dispatch the response object to Parse targets
+                th.Thread(target=self.command_targets,
+                          args=[response_object, 'parse']).start()
             self.remove_worker(publisher)
