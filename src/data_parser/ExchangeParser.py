@@ -26,25 +26,30 @@ class ExchangeParser(DataParser):
 
         response_time = datetime.now().strftime('%Y-%m-%dT%H:%M:%SZ')
         for item in payload:
-            trade_register = {
-                'offer_id': item['id'],
-                'trade_league': item['item']['league'],
-                'buying_currency': None,
-                'buying_price': None,
-                'offer_currency': item['item']['typeLine'],
-                'offer_amount': 1,
-                'offer_total_stock': item['item']['stackSize'],
-                'acc_user': item['listing']['account']['name'],
-                'acc_user_online': item['listing']
-                ['account']['online'] is not None,
-                'indexed_time': item['listing']['indexed'],
-                'processed_time': response_time,
-            }
+            try:
+                trade_register = {
+                    'offer_id': item['id'],
+                    'trade_league': item['item']['league'],
+                    'buying_currency': None,
+                    'buying_price': None,
+                    'offer_currency': item['item']['typeLine'],
+                    'offer_amount': 1,
+                    'offer_total_stock': item['item']['stackSize'],
+                    'acc_user': item['listing']['account']['name'],
+                    'acc_user_online': item['listing']
+                    ['account']['online'] is not None,
+                    'indexed_time': item['listing']['indexed'],
+                    'processed_time': response_time,
+                }
 
-            if item['listing'] is not None:
-                trade_register['buying_currency'] = item['listing'][
-                    'price']['currency']
-                trade_register['buying_price'] = item['listing'][
-                    'price']['amount']
-            super().append_data(trade_register)
+                if item['listing'] is not None:
+                    trade_register['buying_currency'] = item['listing'][
+                        'price']['currency']
+                    trade_register['buying_price'] = item['listing'][
+                        'price']['amount']
+            except TypeError as e:
+                logging.error('Unable to parse this register:\n%s' % item)
+                continue
+            else:
+                super().append_data(trade_register)
         self.dispatch()
