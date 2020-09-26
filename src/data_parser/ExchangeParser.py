@@ -43,11 +43,12 @@ class ExchangeParser(DataParser):
                 }
 
                 if item['listing'] is not None:
-                    trade_register['buying_currency'] = item['listing'][
-                        'price']['currency']
-                    trade_register['buying_price'] = item['listing'][
-                        'price']['amount']
-            except TypeError as e:
+                    if item['listing']['price'] is not None:
+                        trade_register['buying_currency'] = item['listing'][
+                            'price']['currency']
+                        trade_register['buying_price'] = round(item['listing'][
+                            'price']['amount'])
+            except (TypeError, AttributeError):
                 logging.error('Unable to parse this register:\n%s' % item)
                 continue
             else:
