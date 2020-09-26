@@ -3,7 +3,7 @@
 
 
 class ExchangeItem():
-    def __init__(self, want, have, league='harvest',
+    def __init__(self, want, have, league='standard',
                  minimum_stock=0, allow_adjust_minimum_stock=True):
 
         # Additional params
