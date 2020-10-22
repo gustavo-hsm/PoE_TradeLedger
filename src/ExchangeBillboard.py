@@ -1,4 +1,4 @@
-from nameko.rpc import rpc, RpcProxy
+from nameko.rpc import rpc
 
 from services.Billboard import Billboard
 from data_source.ExchangeItem import ExchangeItem
