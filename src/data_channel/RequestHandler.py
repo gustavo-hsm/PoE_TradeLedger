@@ -5,13 +5,10 @@ from objects.Observer import Publisher
 from static.EventType import EventType
 from static.Params import HandlerParams
 from data_channel.ErrorHandler import StatusCodeException
-# from data_source.TradeItem import TradeItem
 
 
 class RequestHandler(Publisher):
     def __init__(self, exchange_item):
-        # TODO: Assert exchange_item
-        # assert isinstance(exchange_item, TradeItem)
         Publisher.__init__(self)
         self.exchange_item = exchange_item
         self.response = None

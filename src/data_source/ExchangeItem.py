@@ -1,7 +1,3 @@
-# TODO
-# from data_source.TradeItem import TradeItem
-
-
 class ExchangeItem():
     def __init__(self, want, have, league='standard',
                  minimum_stock=0, allow_adjust_minimum_stock=True):
@@ -31,6 +27,13 @@ class ExchangeItem():
 
     def get_json_params(self):
         return self.json_params
+
+    def get_jsonified_item(self):
+        return {
+            'want': self.want,
+            'have': self.have,
+            'league': self.league
+        }
 
     def raise_minimum_stock(self, factor=2):
         if self.allow_adjust_minimum_stock:

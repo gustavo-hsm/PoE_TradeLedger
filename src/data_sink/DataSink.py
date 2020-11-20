@@ -1,8 +1,3 @@
-from threading import Lock
-
-from objects.Sync_decorator import sync
-
-
 class DataSink():
     SINK_SUCCESSFUL = 0
     SINK_FAILURE = 1
