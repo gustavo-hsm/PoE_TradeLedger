@@ -26,7 +26,7 @@ mccabe==0.6.1
 mistune==0.8.4
 mock==4.0.2
 monotonic==1.5
-nameko==2.13.0
+nameko==2.14.0
 path==15.0.0
 path.py==12.5.0
 pycodestyle==2.6.0
